@@ -91,7 +91,7 @@ Deploying to: ${env}
     async deploy(env: string): Promise<ContractAddresses> {
         const blockNumber = await this.getBlockNumber();
         const walletFactoryAddress = await this.uploadAugurWalletFactory();
-        this.augur = await this.uploadAugur();
+        await this.uploadAugur();
         //
         // this.augurTrading = await this.uploadAugurTrading();
         // this.registerContract("AugurWalletFactory", walletFactoryAddress);
@@ -365,7 +365,7 @@ Deploying to: ${env}
         return contract.address;
     }
 
-    private async uploadAugur(): Promise<Augur> {
+    private async uploadAugur(): Promise<string> {
         console.log('Uploading augur...');
         const contract = await this.contracts.get('Augur');
         const address = await this.construct(contract, []);
@@ -376,7 +376,7 @@ Deploying to: ${env}
         const bytecode_hex = contract.bytecode.toString('hex');
         fs.writeFileSync("./contract_bytecode.txt", bytecode_hex);
 
-        return;
+        return "";
 
         // const augur = new Augur(this.dependencies, address);
         // const ownerAddress = await augur.uploader_();
