@@ -92,6 +92,8 @@ Deploying to: ${env}
         const blockNumber = await this.getBlockNumber();
         const walletFactoryAddress = await this.uploadAugurWalletFactory();
         this.augur = await this.uploadAugur();
+        return;
+
         this.augurTrading = await this.uploadAugurTrading();
         this.registerContract("AugurWalletFactory", walletFactoryAddress);
         await this.uploadAllContracts();
