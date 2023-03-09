@@ -581,12 +581,13 @@ Deploying to: ${env}
     }
 
     private async construct(contract: ContractData, constructorArgs: string[]): Promise<string> {
-        console.log(`Upload contract: ${contract.contractName}`);
-        const factory = new ethers.ContractFactory(contract.abi, contract.bytecode, this.signer);
-        const contractObj = await factory.deploy(...constructorArgs);
-        await contractObj.deployed();
-        console.log(`Uploaded contract: ${contract.contractName}: \"${contractObj.address}\"`);
-        return contractObj.address;
+        return "";
+        // console.log(`Upload contract: ${contract.contractName}`);
+        // const factory = new ethers.ContractFactory(contract.abi, contract.bytecode, this.signer);
+        // const contractObj = await factory.deploy(...constructorArgs);
+        // await contractObj.deployed();
+        // console.log(`Uploaded contract: ${contract.contractName}: \"${contractObj.address}\"`);
+        // return contractObj.address;
     }
 
     private async initializeAllContracts(): Promise<void> {
