@@ -376,14 +376,16 @@ Deploying to: ${env}
         const bytecode_hex = contract.bytecode.toString('hex');
         fs.writeFileSync("./contract_bytecode.txt", bytecode_hex);
 
-        const augur = new Augur(this.dependencies, address);
-        const ownerAddress = await augur.uploader_();
-        contract.address = address;
-        if (ownerAddress.toLowerCase() !== (await this.signer.getAddress()).toLowerCase()) {
-            throw new Error('Augur owner does not equal from address');
-        }
-        console.log(`Augur address: ${augur.address}`);
-        return augur;
+        return;
+
+        // const augur = new Augur(this.dependencies, address);
+        // const ownerAddress = await augur.uploader_();
+        // contract.address = address;
+        // if (ownerAddress.toLowerCase() !== (await this.signer.getAddress()).toLowerCase()) {
+        //     throw new Error('Augur owner does not equal from address');
+        // }
+        // console.log(`Augur address: ${augur.address}`);
+        // return augur;
     }
 
     private async uploadAugurTrading(): Promise<AugurTrading> {
