@@ -283,69 +283,69 @@ Deploying to: ${env}
         // This type assertion means that `mapping` can possibly NOT adhere to the ContractAddresses interface.
         const mapping = {} as ContractAddresses;
 
-        mapping['Augur'] = this.augur!.address;
-        if (this.universe) mapping['Universe'] = this.universe.address;
-        if (this.contracts.get('Augur').address === undefined) throw new Error('Augur not uploaded.');
-        mapping['Augur'] = this.contracts.get('Augur').address!;
-        mapping['LegacyReputationToken'] = this.contracts.get('LegacyReputationToken').address!;
-        mapping['Cash'] = this.getContractAddress('Cash');
-        const USDCAddress = this.configuration.deploy.externalAddresses.USDC || this.getContractAddress('USDC');
-        const USDTAddress = this.configuration.deploy.externalAddresses.USDT || this.getContractAddress('USDT');
-        mapping['USDC'] = USDCAddress;
-        mapping['USDT'] = USDTAddress;
-        mapping['BuyParticipationTokens'] = this.contracts.get('BuyParticipationTokens').address!;
-        mapping['RedeemStake'] = this.contracts.get('RedeemStake').address!;
-        mapping['AugurTrading'] = this.contracts.get('AugurTrading').address!;
-        mapping['Exchange'] = this.contracts.get('Exchange').address!;
-
-        mapping['UniswapV2Factory'] = this.contracts.get('UniswapV2Factory').address!;
-        mapping['UniswapV2Router02'] = this.contracts.get('UniswapV2Router02').address!;
-        const uniswapV2Factory = new UniswapV2Factory(this.dependencies, this.getContractAddress('UniswapV2Factory'));
-        mapping['EthExchange'] = await uniswapV2Factory.getPair_(this.getContractAddress('WETH9'), this.getContractAddress('Cash'));
-        mapping['USDCExchange'] = await uniswapV2Factory.getPair_(USDCAddress, this.getContractAddress('Cash'));
-        mapping['USDTExchange'] = await uniswapV2Factory.getPair_(USDTAddress, this.getContractAddress('Cash'));
-        mapping['AuditFunds'] = this.contracts.get('AuditFunds').address!;
-        mapping['AccountLoader'] = this.contracts.get('AccountLoader').address!;
-
-        mapping['OICash'] = this.contracts.get('OICash').address!;
-        mapping['AugurWalletRegistry'] = this.contracts.get('AugurWalletRegistry').address!;
-        for (let contract of this.contracts) {
-            if (/^I[A-Z].*/.test(contract.contractName)) continue;
-            if (contract.contractName === 'TimeControlled') continue;
-            if (contract.contractName === 'Universe') continue;
-            if (contract.contractName === 'ReputationToken') continue;
-            if (contract.contractName === 'TestNetReputationToken') continue;
-            if (contract.contractName === 'TestNetReputationTokenFactory') continue;
-            if (contract.contractName === 'RelayHub') continue;
-            if (contract.contractName === 'Time') contract = this.configuration.deploy.normalTime ? contract : this.contracts.get('TimeControlled');
-            if (contract.contractName === 'ReputationTokenFactory') contract = this.configuration.deploy.isProduction ? contract: this.contracts.get('TestNetReputationTokenFactory');
-            if (contract.relativeFilePath.startsWith('legacy_reputation/')) continue;
-            if (contract.relativeFilePath.startsWith('external/')) continue;
-            if (contract.relativeFilePath.startsWith('uniswap/')) continue;
-
-            // 0x
-            if (this.configuration.deploy.externalAddresses.Exchange && [
-              'ERC20Proxy',
-              'ERC721Proxy',
-              'ERC1155Proxy',
-              'Exchange',
-              'Coordinator',
-              'CoordinatorRegistry',
-              'MultiAssetProxy',
-              'ChaiBridge',
-              'DevUtils',
-              'WETH9',
-              'ZRXToken',
-            ].includes(contract.contractName)) continue;
-            if (contract.contractName === 'Exchange') continue;
-
-            if (contract.contractName !== 'Map' && contract.relativeFilePath.startsWith('libraries/')) continue;
-            if (['Cash', 'USDC', 'USDT'].includes(contract.contractName)) continue;
-            if (['IAugur', 'IDisputeCrowdsourcer', 'IDisputeWindow', 'IUniverse', 'IMarket', 'IReportingParticipant', 'IReputationToken', 'IOrders', 'IShareToken', 'Order', 'IV2ReputationToken', 'IInitialReporter'].includes(contract.contractName)) continue;
-            if (contract.address === undefined) throw new Error(`${contract.contractName} not uploaded.`);
-
-            mapping[contract.contractName] = contract.address;
-        }
+        // mapping['Augur'] = this.augur!.address;
+        // if (this.universe) mapping['Universe'] = this.universe.address;
+        // if (this.contracts.get('Augur').address === undefined) throw new Error('Augur not uploaded.');
+        // mapping['Augur'] = this.contracts.get('Augur').address!;
+        // mapping['LegacyReputationToken'] = this.contracts.get('LegacyReputationToken').address!;
+        // mapping['Cash'] = this.getContractAddress('Cash');
+        // const USDCAddress = this.configuration.deploy.externalAddresses.USDC || this.getContractAddress('USDC');
+        // const USDTAddress = this.configuration.deploy.externalAddresses.USDT || this.getContractAddress('USDT');
+        // mapping['USDC'] = USDCAddress;
+        // mapping['USDT'] = USDTAddress;
+        // mapping['BuyParticipationTokens'] = this.contracts.get('BuyParticipationTokens').address!;
+        // mapping['RedeemStake'] = this.contracts.get('RedeemStake').address!;
+        // mapping['AugurTrading'] = this.contracts.get('AugurTrading').address!;
+        // mapping['Exchange'] = this.contracts.get('Exchange').address!;
+        //
+        // mapping['UniswapV2Factory'] = this.contracts.get('UniswapV2Factory').address!;
+        // mapping['UniswapV2Router02'] = this.contracts.get('UniswapV2Router02').address!;
+        // const uniswapV2Factory = new UniswapV2Factory(this.dependencies, this.getContractAddress('UniswapV2Factory'));
+        // mapping['EthExchange'] = await uniswapV2Factory.getPair_(this.getContractAddress('WETH9'), this.getContractAddress('Cash'));
+        // mapping['USDCExchange'] = await uniswapV2Factory.getPair_(USDCAddress, this.getContractAddress('Cash'));
+        // mapping['USDTExchange'] = await uniswapV2Factory.getPair_(USDTAddress, this.getContractAddress('Cash'));
+        // mapping['AuditFunds'] = this.contracts.get('AuditFunds').address!;
+        // mapping['AccountLoader'] = this.contracts.get('AccountLoader').address!;
+        //
+        // mapping['OICash'] = this.contracts.get('OICash').address!;
+        // mapping['AugurWalletRegistry'] = this.contracts.get('AugurWalletRegistry').address!;
+        // for (let contract of this.contracts) {
+        //     if (/^I[A-Z].*/.test(contract.contractName)) continue;
+        //     if (contract.contractName === 'TimeControlled') continue;
+        //     if (contract.contractName === 'Universe') continue;
+        //     if (contract.contractName === 'ReputationToken') continue;
+        //     if (contract.contractName === 'TestNetReputationToken') continue;
+        //     if (contract.contractName === 'TestNetReputationTokenFactory') continue;
+        //     if (contract.contractName === 'RelayHub') continue;
+        //     if (contract.contractName === 'Time') contract = this.configuration.deploy.normalTime ? contract : this.contracts.get('TimeControlled');
+        //     if (contract.contractName === 'ReputationTokenFactory') contract = this.configuration.deploy.isProduction ? contract: this.contracts.get('TestNetReputationTokenFactory');
+        //     if (contract.relativeFilePath.startsWith('legacy_reputation/')) continue;
+        //     if (contract.relativeFilePath.startsWith('external/')) continue;
+        //     if (contract.relativeFilePath.startsWith('uniswap/')) continue;
+        //
+        //     // 0x
+        //     if (this.configuration.deploy.externalAddresses.Exchange && [
+        //       'ERC20Proxy',
+        //       'ERC721Proxy',
+        //       'ERC1155Proxy',
+        //       'Exchange',
+        //       'Coordinator',
+        //       'CoordinatorRegistry',
+        //       'MultiAssetProxy',
+        //       'ChaiBridge',
+        //       'DevUtils',
+        //       'WETH9',
+        //       'ZRXToken',
+        //     ].includes(contract.contractName)) continue;
+        //     if (contract.contractName === 'Exchange') continue;
+        //
+        //     if (contract.contractName !== 'Map' && contract.relativeFilePath.startsWith('libraries/')) continue;
+        //     if (['Cash', 'USDC', 'USDT'].includes(contract.contractName)) continue;
+        //     if (['IAugur', 'IDisputeCrowdsourcer', 'IDisputeWindow', 'IUniverse', 'IMarket', 'IReportingParticipant', 'IReputationToken', 'IOrders', 'IShareToken', 'Order', 'IV2ReputationToken', 'IInitialReporter'].includes(contract.contractName)) continue;
+        //     if (contract.address === undefined) throw new Error(`${contract.contractName} not uploaded.`);
+        //
+        //     mapping[contract.contractName] = contract.address;
+        // }
 
         return mapping;
     }
