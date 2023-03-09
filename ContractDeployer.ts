@@ -92,150 +92,149 @@ Deploying to: ${env}
         const blockNumber = await this.getBlockNumber();
         const walletFactoryAddress = await this.uploadAugurWalletFactory();
         this.augur = await this.uploadAugur();
-        return;
-
-        this.augurTrading = await this.uploadAugurTrading();
-        this.registerContract("AugurWalletFactory", walletFactoryAddress);
-        await this.uploadAllContracts();
-
-        const externalAddresses = this.configuration.deploy.externalAddresses;
-
-        // Legacy REP
-
-        if (this.configuration.deploy.isProduction || externalAddresses.LegacyReputationToken) {
-            if (!externalAddresses.LegacyReputationToken) throw new Error('Must provide LegacyReputationToken');
-            console.log(`Registering Legacy Rep Contract at ${externalAddresses.LegacyReputationToken}`);
-            await this.augur!.registerContract(stringTo32ByteHex('LegacyReputationToken'), externalAddresses.LegacyReputationToken);
-        } else {
-            await this.uploadLegacyRep();
-        }
-
-        // Cash
-        if (this.configuration.deploy.isProduction
-            || externalAddresses.Cash
-            || externalAddresses.WETH9) {
-            if (!(externalAddresses.Cash && externalAddresses.WETH9)) {
-                throw new Error('Must provide ALL Maker contracts if any are provided');
-            }
-
-            console.log(`Registering Cash Contract at ${externalAddresses.Cash}`);
-            await this.augur!.registerContract(stringTo32ByteHex('Cash'), externalAddresses.Cash);
-
-            // WETH 9
-            console.log(`Registering WETH9 Contract at ${externalAddresses.WETH9}`);
-            await this.augurTrading!.registerContract(stringTo32ByteHex('WETH9'), externalAddresses.WETH9);
-        } else {
-            await this.uploadTestDaiContracts();
-            await this.uploadTestUSDxContracts();
-        }
-
-        // 0x Exchange
-        if (this.configuration.deploy.isProduction || externalAddresses.Exchange) {
-            if (!externalAddresses.Exchange) throw new Error('Must provide Exchange (ZeroXExchange)');
-            console.log(`Registering 0x Exchange Contract at ${externalAddresses.Exchange}`);
-            await this.augurTrading!.registerContract(stringTo32ByteHex('ZeroXExchange'), externalAddresses.Exchange);
-        } else {
-            await this.upload0xContracts();
-        }
-
-        // Uniswap
-        if (this.configuration.deploy.isProduction || externalAddresses.UniswapV2Factory) {
-            if (!externalAddresses.UniswapV2Factory) throw new Error('Must provide UniswapV2Factory');
-            console.log(`Registering UniswapV2Factory Contract at ${externalAddresses.UniswapV2Factory}`);
-            await this.augur!.registerContract(stringTo32ByteHex('UniswapV2Factory'), externalAddresses.UniswapV2Factory);
-            console.log(`Registering UniswapV2Router02 Contract at ${externalAddresses.UniswapV2Router02}`);
-            await this.augur!.registerContract(stringTo32ByteHex('UniswapV2Router02'), externalAddresses.UniswapV2Router02);
-        } else {
-            await this.uploadUniswapContracts();
-        }
-
-        // GSN. The GSN RelayHub is deployed with a static address via create2 so we only need to do anything if we're in a dev environment where it hasnt been deployed
-        if (!this.configuration.deploy.isProduction) {
-            const relayHubDeployedCode = await this.provider.getCode(RELAY_HUB_ADDRESS);
-            if (relayHubDeployedCode !== '0x') {
-                console.log('Relay Hub is already deployed to this environment. Skipping Deploy.')
-            } else {
-                console.log('Deploying Relay Hub.')
-                let response = await this.signer.sendTransaction({
-                    to: RELAY_HUB_DEPLOYER_ADDRESS,
-                    data: '0x00',
-                    value: '0x3A4965BF58A40000',
-                })
-                let reciept = await response.wait();
-                response = await this.provider.sendTransaction(RELAY_HUB_SIGNED_DEPLOY_TX);
-                reciept = await response.wait();
-                if (reciept.contractAddress !== RELAY_HUB_ADDRESS) {
-                    throw new Error(`Relay Hub deployment failed. Deployed address: ${reciept.contractAddress}`);
-                }
-                console.log('Relay Hub deployed.')
-            }
-        }
-
-        // GSN V2 requires a more standard deployment
-        if (this.configuration.deploy.isProduction || externalAddresses.RelayHubV2) {
-            if (!externalAddresses.RelayHubV2) throw new Error('Must provide RelayHubV2');
-            console.log(`Registering RelayHubV2 Contract at ${externalAddresses.RelayHubV2}`);
-            await this.augurTrading!.registerContract(stringTo32ByteHex('RelayHubV2'), externalAddresses.RelayHubV2);
-        } else {
-            await this.uploadGSNV2Contracts();
-        }
-
-        await this.initializeAllContracts();
-        await this.doTradingApprovals();
-
-        if (!this.configuration.deploy.normalTime) {
-            console.log('Resetting time controlled');
-            await this.resetTimeControlled();
-        }
-
-        if (!externalAddresses.LegacyReputationToken) {
-            console.log('Initializing fake legacy REP');
-            await this.initializeLegacyRep();
-        }
-
-        console.log('Creating genesis universe');
-        this.universe = await this.createGenesisUniverse();
-
-        if (!externalAddresses.LegacyReputationToken) {
-            console.log('Migrating from fake legacy REP');
-            await this.migrateFromLegacyRep();
-        }
-
-
-        // Handle some things that make testing less erorr prone that will need to occur naturally in production
-        if (!this.configuration.deploy.isProduction) {
-            console.log('Initializing warp sync market');
-            const warpSync = new WarpSync(this.dependencies, this.getContractAddress('WarpSync'));
-            await warpSync.initializeUniverse(this.universe.address);
-
-            const cash = new Cash(this.dependencies, this.getContractAddress('Cash'));
-
-            console.log('Approving Augur');
-            const authority = this.getContractAddress('Augur');
-            await cash.approve(authority, new BigNumber(2).pow(256).minus(new BigNumber(1)));
-
-            console.log('Add ETH-Cash exchange liquidity');
-            await this.setupEthExchange(cash);
-
-            console.log('Add REP-Cash exchange liquidity');
-            const repAddress = await this.universe!.getReputationToken_();
-            await this.setupTokenExchange(cash, new TestNetReputationToken(this.dependencies, repAddress));
-
-            console.log('Add USDC-Cash exchange liquidity');
-            await this.setupTokenExchange(new USDC(this.dependencies, this.getContractAddress('USDC')), cash);
-
-            console.log('Add USDT-Cash exchange liquidity');
-            await this.setupTokenExchange(new USDT(this.dependencies, this.getContractAddress('USDT')), cash);
-        }
-
-        console.log('Writing artifacts');
-        if (this.configuration.deploy.writeArtifacts) {
-          await this.generateLocalEnvFile(env, blockNumber, this.configuration);
-        }
-
-        console.log('Finalizing deployment');
-        await this.augur.finishDeployment();
-        await this.augurTrading.finishDeployment();
+        //
+        // this.augurTrading = await this.uploadAugurTrading();
+        // this.registerContract("AugurWalletFactory", walletFactoryAddress);
+        // await this.uploadAllContracts();
+        //
+        // const externalAddresses = this.configuration.deploy.externalAddresses;
+        //
+        // // Legacy REP
+        //
+        // if (this.configuration.deploy.isProduction || externalAddresses.LegacyReputationToken) {
+        //     if (!externalAddresses.LegacyReputationToken) throw new Error('Must provide LegacyReputationToken');
+        //     console.log(`Registering Legacy Rep Contract at ${externalAddresses.LegacyReputationToken}`);
+        //     await this.augur!.registerContract(stringTo32ByteHex('LegacyReputationToken'), externalAddresses.LegacyReputationToken);
+        // } else {
+        //     await this.uploadLegacyRep();
+        // }
+        //
+        // // Cash
+        // if (this.configuration.deploy.isProduction
+        //     || externalAddresses.Cash
+        //     || externalAddresses.WETH9) {
+        //     if (!(externalAddresses.Cash && externalAddresses.WETH9)) {
+        //         throw new Error('Must provide ALL Maker contracts if any are provided');
+        //     }
+        //
+        //     console.log(`Registering Cash Contract at ${externalAddresses.Cash}`);
+        //     await this.augur!.registerContract(stringTo32ByteHex('Cash'), externalAddresses.Cash);
+        //
+        //     // WETH 9
+        //     console.log(`Registering WETH9 Contract at ${externalAddresses.WETH9}`);
+        //     await this.augurTrading!.registerContract(stringTo32ByteHex('WETH9'), externalAddresses.WETH9);
+        // } else {
+        //     await this.uploadTestDaiContracts();
+        //     await this.uploadTestUSDxContracts();
+        // }
+        //
+        // // 0x Exchange
+        // if (this.configuration.deploy.isProduction || externalAddresses.Exchange) {
+        //     if (!externalAddresses.Exchange) throw new Error('Must provide Exchange (ZeroXExchange)');
+        //     console.log(`Registering 0x Exchange Contract at ${externalAddresses.Exchange}`);
+        //     await this.augurTrading!.registerContract(stringTo32ByteHex('ZeroXExchange'), externalAddresses.Exchange);
+        // } else {
+        //     await this.upload0xContracts();
+        // }
+        //
+        // // Uniswap
+        // if (this.configuration.deploy.isProduction || externalAddresses.UniswapV2Factory) {
+        //     if (!externalAddresses.UniswapV2Factory) throw new Error('Must provide UniswapV2Factory');
+        //     console.log(`Registering UniswapV2Factory Contract at ${externalAddresses.UniswapV2Factory}`);
+        //     await this.augur!.registerContract(stringTo32ByteHex('UniswapV2Factory'), externalAddresses.UniswapV2Factory);
+        //     console.log(`Registering UniswapV2Router02 Contract at ${externalAddresses.UniswapV2Router02}`);
+        //     await this.augur!.registerContract(stringTo32ByteHex('UniswapV2Router02'), externalAddresses.UniswapV2Router02);
+        // } else {
+        //     await this.uploadUniswapContracts();
+        // }
+        //
+        // // GSN. The GSN RelayHub is deployed with a static address via create2 so we only need to do anything if we're in a dev environment where it hasnt been deployed
+        // if (!this.configuration.deploy.isProduction) {
+        //     const relayHubDeployedCode = await this.provider.getCode(RELAY_HUB_ADDRESS);
+        //     if (relayHubDeployedCode !== '0x') {
+        //         console.log('Relay Hub is already deployed to this environment. Skipping Deploy.')
+        //     } else {
+        //         console.log('Deploying Relay Hub.')
+        //         let response = await this.signer.sendTransaction({
+        //             to: RELAY_HUB_DEPLOYER_ADDRESS,
+        //             data: '0x00',
+        //             value: '0x3A4965BF58A40000',
+        //         })
+        //         let reciept = await response.wait();
+        //         response = await this.provider.sendTransaction(RELAY_HUB_SIGNED_DEPLOY_TX);
+        //         reciept = await response.wait();
+        //         if (reciept.contractAddress !== RELAY_HUB_ADDRESS) {
+        //             throw new Error(`Relay Hub deployment failed. Deployed address: ${reciept.contractAddress}`);
+        //         }
+        //         console.log('Relay Hub deployed.')
+        //     }
+        // }
+        //
+        // // GSN V2 requires a more standard deployment
+        // if (this.configuration.deploy.isProduction || externalAddresses.RelayHubV2) {
+        //     if (!externalAddresses.RelayHubV2) throw new Error('Must provide RelayHubV2');
+        //     console.log(`Registering RelayHubV2 Contract at ${externalAddresses.RelayHubV2}`);
+        //     await this.augurTrading!.registerContract(stringTo32ByteHex('RelayHubV2'), externalAddresses.RelayHubV2);
+        // } else {
+        //     await this.uploadGSNV2Contracts();
+        // }
+        //
+        // await this.initializeAllContracts();
+        // await this.doTradingApprovals();
+        //
+        // if (!this.configuration.deploy.normalTime) {
+        //     console.log('Resetting time controlled');
+        //     await this.resetTimeControlled();
+        // }
+        //
+        // if (!externalAddresses.LegacyReputationToken) {
+        //     console.log('Initializing fake legacy REP');
+        //     await this.initializeLegacyRep();
+        // }
+        //
+        // console.log('Creating genesis universe');
+        // this.universe = await this.createGenesisUniverse();
+        //
+        // if (!externalAddresses.LegacyReputationToken) {
+        //     console.log('Migrating from fake legacy REP');
+        //     await this.migrateFromLegacyRep();
+        // }
+        //
+        //
+        // // Handle some things that make testing less erorr prone that will need to occur naturally in production
+        // if (!this.configuration.deploy.isProduction) {
+        //     console.log('Initializing warp sync market');
+        //     const warpSync = new WarpSync(this.dependencies, this.getContractAddress('WarpSync'));
+        //     await warpSync.initializeUniverse(this.universe.address);
+        //
+        //     const cash = new Cash(this.dependencies, this.getContractAddress('Cash'));
+        //
+        //     console.log('Approving Augur');
+        //     const authority = this.getContractAddress('Augur');
+        //     await cash.approve(authority, new BigNumber(2).pow(256).minus(new BigNumber(1)));
+        //
+        //     console.log('Add ETH-Cash exchange liquidity');
+        //     await this.setupEthExchange(cash);
+        //
+        //     console.log('Add REP-Cash exchange liquidity');
+        //     const repAddress = await this.universe!.getReputationToken_();
+        //     await this.setupTokenExchange(cash, new TestNetReputationToken(this.dependencies, repAddress));
+        //
+        //     console.log('Add USDC-Cash exchange liquidity');
+        //     await this.setupTokenExchange(new USDC(this.dependencies, this.getContractAddress('USDC')), cash);
+        //
+        //     console.log('Add USDT-Cash exchange liquidity');
+        //     await this.setupTokenExchange(new USDT(this.dependencies, this.getContractAddress('USDT')), cash);
+        // }
+        //
+        // console.log('Writing artifacts');
+        // if (this.configuration.deploy.writeArtifacts) {
+        //   await this.generateLocalEnvFile(env, blockNumber, this.configuration);
+        // }
+        //
+        // console.log('Finalizing deployment');
+        // await this.augur.finishDeployment();
+        // await this.augurTrading.finishDeployment();
 
         return await this.generateCompleteAddressMapping();
     }
